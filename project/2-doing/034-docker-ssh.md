@@ -107,6 +107,8 @@ Set `DOCKER_CONTEXT=desktop-linux` as a system-level (Machine) environment varia
 [System.Environment]::SetEnvironmentVariable("DOCKER_CONTEXT", $null, "Machine")
 ```
 
+## Plan Approved
+
 ## Verification
 
 SSH into the machine and run `docker compose ps` successfully.
