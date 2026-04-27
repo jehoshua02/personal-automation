@@ -16,6 +16,8 @@ Insert a filtering step before LLM extraction that decides if an email is worth 
 - Captured: 2026-04-27
 - Refined: 2026-04-27
 - Started: 2026-04-27
+- Verified: 2026-04-27
+- Done: 2026-04-27
 
 ## Details
 
@@ -72,10 +74,20 @@ New service: `email-filter` on port 8087. Follows single-responsibility pattern.
 
 - 9/9 tests passing. mark-processed accepts optional label param. Filtered emails get "AutoFiltered" label.
 
-#### Phase 4: e2e test — TODO
+#### Phase 4: e2e tests — DONE
 
-- Requires docker build (email-filter image doesn't exist yet) and valid OAuth tokens.
-- Cannot run over SSH due to DPAPI. Run when local.
+- 26/26 e2e tests pass. Filter rejects spam, passes important emails, applies AutoFiltered label.
+- Fixed: fetch query now excludes both `processed` and `AutoFiltered` labels.
+- Added volume mounts for all services in docker-compose (no rebuild needed for code changes).
+
+## Verification
+
+```
+26 passed in 34.60s
+```
+
+All unit tests: 15/15 email-filter, 11/11 orchestrator, 9/9 gmail-reader.
+All e2e tests: 26/26 including filter spam, pass important, pipeline filter+label, no refetch.
 
 ### Whitelist bootstrap
 
