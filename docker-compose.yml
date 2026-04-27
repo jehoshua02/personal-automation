@@ -1,0 +1,91 @@
+services:
+  auth:
+    build: ./services/auth
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./secrets/client_secret_250820501274-oaj382clma3s5jt90rqqq7gfcf0m7lml.apps.googleusercontent.com.json:/secrets/client_secret.json:ro
+      - auth-data:/data
+    environment:
+      - OAUTH_CONFIG_PATH=/secrets/client_secret.json
+      - OAUTH_TOKEN_PATH=/data/token.json
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  gmail-reader:
+    build: ./services/gmail-reader
+    ports:
+      - "8081:8081"
+    environment:
+      - AUTH_SERVICE_URL=http://auth:8080
+    depends_on:
+      - auth
+
+  llm-processor:
+    build: ./services/llm-processor
+    ports:
+      - "8082:8082"
+    environment:
+      - OLLAMA_URL=http://ollama:11434
+      - LLM_MODEL=llama3.1:8b
+    depends_on:
+      - ollama
+
+  task-writer:
+    build: ./services/task-writer
+    ports:
+      - "8083:8083"
+    environment:
+      - AUTH_SERVICE_URL=http://auth:8080
+    depends_on:
+      - auth
+
+  calendar-writer:
+    build: ./services/calendar-writer
+    ports:
+      - "8084:8084"
+    environment:
+      - AUTH_SERVICE_URL=http://auth:8080
+    depends_on:
+      - auth
+
+  note-writer:
+    build: ./services/note-writer
+    ports:
+      - "8085:8085"
+    volumes:
+      - notes-data:/data/notes
+
+  orchestrator:
+    build: ./services/orchestrator
+    ports:
+      - "8086:8086"
+    environment:
+      - GMAIL_READER_URL=http://gmail-reader:8081
+      - LLM_PROCESSOR_URL=http://llm-processor:8082
+      - TASK_WRITER_URL=http://task-writer:8083
+      - CALENDAR_WRITER_URL=http://calendar-writer:8084
+      - NOTE_WRITER_URL=http://note-writer:8085
+    depends_on:
+      - gmail-reader
+      - llm-processor
+      - task-writer
+      - calendar-writer
+      - note-writer
+
+volumes:
+  auth-data:
+  ollama-data:
+  notes-data:
