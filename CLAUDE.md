@@ -58,6 +58,7 @@ Eight Docker containers, each a single-responsibility HTTP service on a shared C
 - Task management follows the quarry plugin. Folder structure is in `project/README.md`.
 - Do not use Claude global memory. All project knowledge lives in this repo.
 - When the next step is obvious from the workflow rules, just do it. Don't ask.
+- **One question at a time.** During refinement Q&A, ask only one question per message.
 - **One-shot at pickup.** When moving a task from todo → doing, front-load all codebase research (read code, check APIs, trace dependencies) so the task file has a complete plan that can be executed without further questions. Inbox → todo refinement only needs enough context to score accurately.
 - **Clear after done.** Run `/clear` after moving a task to `project/3-done/` to reset context for the next task.
 - Push to remote after every commit.
