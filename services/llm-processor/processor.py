@@ -46,7 +46,7 @@ class LLMProcessor:
         prompt = build_extraction_prompt(subject, body, sender, date)
         resp = requests.post(
             f"{self.ollama_url}/api/generate",
-            json={"model": self.model, "prompt": prompt, "stream": False},
+            json={"model": self.model, "prompt": prompt, "stream": False, "format": "json"},
             timeout=120,
         )
         if resp.status_code != 200:

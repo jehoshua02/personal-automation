@@ -85,6 +85,13 @@ services:
       - calendar-writer
       - note-writer
 
+  e2e-tests:
+    build: ./tests/e2e
+    profiles:
+      - test
+    depends_on:
+      - orchestrator
+
 volumes:
   auth-data:
   ollama-data:
