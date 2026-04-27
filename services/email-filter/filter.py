@@ -21,10 +21,10 @@ Respond ONLY with valid JSON in this exact format:
 
 
 class EmailFilter:
-    def __init__(self, ollama_url: str, model: str, whitelist: dict):
+    def __init__(self, ollama_url: str, model: str, whitelist: dict = None):
         self.ollama_url = ollama_url
         self.model = model
-        self.whitelist = whitelist
+        self.whitelist = whitelist or {"senders": [], "domains": []}
 
     def _extract_email(self, sender: str) -> str:
         match = re.search(r"<(.+?)>", sender)

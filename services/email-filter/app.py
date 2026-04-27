@@ -18,7 +18,7 @@ def load_whitelist(path: str) -> dict:
         return {"senders": [], "domains": []}
 
 
-email_filter = EmailFilter(OLLAMA_URL, LLM_MODEL, load_whitelist(WHITELIST_PATH))
+email_filter = EmailFilter(OLLAMA_URL, LLM_MODEL)
 
 
 @app.route("/filter", methods=["POST"])
@@ -26,6 +26,7 @@ def filter_email():
     data = request.json
     if not data:
         return jsonify({"error": "request body required"}), 400
+    email_filter.whitelist = load_whitelist(WHITELIST_PATH)
     result = email_filter.filter(
         subject=data.get("subject", ""),
         body=data.get("body", ""),
