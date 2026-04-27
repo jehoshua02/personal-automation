@@ -22,6 +22,7 @@ LLM_PROCESSOR_URL = "http://llm-processor:8082"
 TASK_WRITER_URL = "http://task-writer:8083"
 CALENDAR_WRITER_URL = "http://calendar-writer:8084"
 NOTE_WRITER_URL = "http://note-writer:8085"
+EMAIL_FILTER_URL = "http://email-filter:8087"
 ORCHESTRATOR_URL = "http://orchestrator:8086"
 GMAIL_API = "https://gmail.googleapis.com/gmail/v1/users/me"
 
@@ -75,6 +76,7 @@ class TestServiceHealth:
         (TASK_WRITER_URL, "task-writer"),
         (CALENDAR_WRITER_URL, "calendar-writer"),
         (NOTE_WRITER_URL, "note-writer"),
+        (EMAIL_FILTER_URL, "email-filter"),
         (ORCHESTRATOR_URL, "orchestrator"),
     ])
     def test_health(self, url, name):
@@ -249,6 +251,46 @@ class TestNoteWriterIntegration:
         assert "e2e-test" in data["path"]
 
 
+class TestEmailFilterIntegration:
+    """Verify email-filter classifies emails via LLM."""
+
+    def test_filters_spam(self):
+        """LLM is non-deterministic. Retry up to 3 times."""
+        payload = {
+            "subject": "🔥 HUGE SALE 80% OFF Everything!!!",
+            "body": "Don't miss our biggest sale of the year! Use code SAVE80 at checkout. "
+                    "Free shipping on orders over $25. Unsubscribe here.",
+            "from": "noreply@deals-store-promo.com",
+            "date": "2026-04-27",
+        }
+        for attempt in range(3):
+            resp = requests.post(f"{EMAIL_FILTER_URL}/filter", json=payload)
+            assert resp.status_code == 200
+            data = resp.json()
+            assert "important" in data
+            assert "reason" in data
+            assert "method" in data
+            if data["important"] is False:
+                return
+        pytest.fail(f"Filter did not reject obvious spam after 3 attempts: {data}")
+
+    def test_passes_important_email(self):
+        """LLM is non-deterministic. Retry up to 3 times."""
+        payload = {
+            "subject": "Action required: sign the contract by Friday",
+            "body": "Hi,\n\nThe client contract is ready for your signature. "
+                    "Please review and sign by end of day Friday.\n\nThanks,\nLegal",
+            "from": "legal@company.com",
+            "date": "2026-04-27",
+        }
+        for attempt in range(3):
+            resp = requests.post(f"{EMAIL_FILTER_URL}/filter", json=payload)
+            data = resp.json()
+            if data["important"] is True:
+                return
+        pytest.fail(f"Filter rejected important email after 3 attempts: {data}")
+
+
 class TestFullPipeline:
     """End-to-end: insert email, run pipeline, verify outputs."""
 
@@ -274,6 +316,10 @@ class TestFullPipeline:
                         break
                 assert result is not None, "Pipeline did not process the test email"
 
+                if result.get("filtered"):
+                    delete_test_email(msg_id)
+                    continue
+
                 ex = result["extractions"]
                 total = len(ex["tasks"]) + len(ex["events"]) + len(ex["notes"])
                 if total == 0:
@@ -291,6 +337,40 @@ class TestFullPipeline:
             finally:
                 delete_test_email(msg_id)
         pytest.fail("Pipeline produced no extractions after 3 attempts")
+
+    def test_pipeline_filters_spam(self):
+        """Pipeline should filter obvious spam and label it AutoFiltered."""
+        for attempt in range(3):
+            msg_id = insert_test_email(
+                subject="You won a FREE iPhone!!! Click NOW",
+                body="Congratulations! You have been selected to receive a free iPhone 15! "
+                     "Click the link below to claim your prize. Offer expires in 24 hours! "
+                     "No purchase necessary. Unsubscribe: reply STOP.",
+                sender="deals@win-free-prizes-now.com",
+            )
+            try:
+                resp = requests.post(f"{ORCHESTRATOR_URL}/run", json={"max_results": 10})
+                data = resp.json()
+                result = None
+                for r in data["results"]:
+                    if r["message_id"] == msg_id:
+                        result = r
+                        break
+                assert result is not None, "Pipeline did not process the test email"
+                if result.get("filtered"):
+                    resp = requests.get(
+                        f"{GMAIL_API}/messages/{msg_id}",
+                        headers=gmail_headers(),
+                    )
+                    label_ids = resp.json().get("labelIds", [])
+                    resp = requests.get(f"{GMAIL_API}/labels", headers=gmail_headers())
+                    labels = {l["id"]: l["name"] for l in resp.json().get("labels", [])}
+                    applied = [labels.get(lid, "") for lid in label_ids]
+                    assert "AutoFiltered" in applied, f"AutoFiltered label not applied: {applied}"
+                    return
+            finally:
+                delete_test_email(msg_id)
+        pytest.fail("Pipeline did not filter obvious spam after 3 attempts")
 
     def test_processed_emails_not_refetched(self):
         resp = requests.post(f"{ORCHESTRATOR_URL}/run", json={"max_results": 10})

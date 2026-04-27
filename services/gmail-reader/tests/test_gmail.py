@@ -6,7 +6,7 @@ from gmail import GmailClient
 
 @pytest.fixture
 def gmail_client():
-    return GmailClient(auth_service_url="http://auth:8080")
+    return GmailClient(auth_service_url="http://auth:8080", exclude_labels=["processed", "AutoFiltered"])
 
 
 class TestGetToken:
@@ -68,7 +68,9 @@ class TestFetchMessages:
         gmail_client.fetch_messages()
         call_args = mock_get.call_args_list[1]
         params = call_args[1].get("params", {})
-        assert "-label:processed" in params.get("q", "")
+        q = params.get("q", "")
+        assert "-label:processed" in q
+        assert "-label:AutoFiltered" in q
 
     @patch("gmail.requests.get")
     def test_handles_empty_inbox(self, mock_get, gmail_client):
@@ -113,6 +115,22 @@ class TestMarkProcessed:
         gmail_client.mark_processed("msg1")
         create_call = mock_post.call_args_list[0]
         assert create_call[1]["json"]["name"] == "processed"
+
+
+    @patch("gmail.requests.post")
+    @patch("gmail.requests.get")
+    def test_applies_custom_label(self, mock_get, mock_post, gmail_client):
+        token_resp = MagicMock(status_code=200, json=lambda: {"access_token": "tok", "token_type": "Bearer"})
+        mock_get.side_effect = [
+            token_resp,
+            MagicMock(status_code=200, json=lambda: {"labels": [{"id": "Label_AF", "name": "AutoFiltered"}]}),
+            token_resp,
+        ]
+        mock_post.return_value = MagicMock(status_code=200)
+        gmail_client.mark_processed("msg1", label="AutoFiltered")
+        post_call = mock_post.call_args
+        body = post_call[1].get("json", {})
+        assert "Label_AF" in body.get("addLabelIds", [])
 
 
 class TestBuildMessageLink:

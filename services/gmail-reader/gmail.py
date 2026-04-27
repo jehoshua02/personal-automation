@@ -5,9 +5,10 @@ GMAIL_API = "https://gmail.googleapis.com/gmail/v1/users/me"
 
 
 class GmailClient:
-    def __init__(self, auth_service_url: str):
+    def __init__(self, auth_service_url: str, exclude_labels: list[str] = None):
         self.auth_service_url = auth_service_url
-        self._label_id_cache = None
+        self.exclude_labels = exclude_labels or ["processed"]
+        self._label_id_cache = {}
 
     def get_token(self) -> str:
         resp = requests.get(f"{self.auth_service_url}/token")
@@ -22,7 +23,7 @@ class GmailClient:
         resp = requests.get(
             f"{GMAIL_API}/messages",
             headers=self._headers(),
-            params={"q": "-label:processed", "maxResults": max_results},
+            params={"q": " ".join(f"-label:{l}" for l in self.exclude_labels), "maxResults": max_results},
         )
         if resp.status_code != 200:
             raise Exception(f"Gmail list failed: {resp.text}")
@@ -69,30 +70,30 @@ class GmailClient:
                 return result
         return ""
 
-    def mark_processed(self, msg_id: str):
-        label_id = self._get_or_create_label()
+    def mark_processed(self, msg_id: str, label: str = "processed"):
+        label_id = self._get_or_create_label(label)
         requests.post(
             f"{GMAIL_API}/messages/{msg_id}/modify",
             headers=self._headers(),
             json={"addLabelIds": [label_id]},
         )
 
-    def _get_or_create_label(self) -> str:
-        if self._label_id_cache:
-            return self._label_id_cache
+    def _get_or_create_label(self, name: str = "processed") -> str:
+        if name in self._label_id_cache:
+            return self._label_id_cache[name]
         resp = requests.get(f"{GMAIL_API}/labels", headers=self._headers())
         labels = resp.json().get("labels", [])
         for label in labels:
-            if label["name"] == "processed":
-                self._label_id_cache = label["id"]
+            if label["name"] == name:
+                self._label_id_cache[name] = label["id"]
                 return label["id"]
         resp = requests.post(
             f"{GMAIL_API}/labels",
             headers=self._headers(),
-            json={"name": "processed", "labelListVisibility": "labelShow", "messageListVisibility": "show"},
+            json={"name": name, "labelListVisibility": "labelShow", "messageListVisibility": "show"},
         )
         label = resp.json()
-        self._label_id_cache = label["id"]
+        self._label_id_cache[name] = label["id"]
         return label["id"]
 
     def build_message_link(self, msg_id: str) -> str:

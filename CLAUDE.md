@@ -36,16 +36,18 @@ docker compose exec ollama ollama pull <model-name>
 
 ## Architecture
 
-Eight Docker containers, each a single-responsibility HTTP service on a shared Compose network. All Python (Flask). No service calls another directly except through HTTP JSON APIs.
+Nine Docker containers, each a single-responsibility HTTP service on a shared Compose network. All Python (Flask). No service calls another directly except through HTTP JSON APIs.
 
 **Pipeline flow** (`POST /run` to orchestrator:8086):
 1. orchestrator → `gmail-reader/fetch` → list of email messages
-2. Per message: orchestrator → `llm-processor/extract` → `{tasks[], events[], notes[]}`
-3. Fan-out per extraction type:
+2. Per message: orchestrator → `email-filter/filter` → `{important, reason, method}`
+3. If not important: orchestrator → `gmail-reader/mark-processed` with label "AutoFiltered" → skip to next
+4. If important: orchestrator → `llm-processor/extract` → `{tasks[], events[], notes[]}`
+5. Fan-out per extraction type:
    - tasks → `task-writer/write` → Google Tasks API
    - events → `calendar-writer/write` → Google Calendar API
    - notes → `note-writer/write` → local markdown files
-4. orchestrator → `gmail-reader/mark-processed` → labels email in Gmail
+6. orchestrator → `gmail-reader/mark-processed` → labels email in Gmail
 
 **Auth pattern**: auth service (8080) manages OAuth2 tokens. gmail-reader, task-writer, and calendar-writer call `GET auth:8080/token` to get an access token before hitting Google APIs. note-writer has no auth (writes to bind-mounted filesystem).
 
@@ -58,6 +60,7 @@ Eight Docker containers, each a single-responsibility HTTP service on a shared C
 - Task management follows the quarry plugin. Folder structure is in `project/README.md`.
 - Do not use Claude global memory. All project knowledge lives in this repo.
 - When the next step is obvious from the workflow rules, just do it. Don't ask.
+- **One question at a time.** During refinement Q&A, ask only one question per message.
 - **One-shot at pickup.** When moving a task from todo → doing, front-load all codebase research (read code, check APIs, trace dependencies) so the task file has a complete plan that can be executed without further questions. Inbox → todo refinement only needs enough context to score accurately.
 - **Clear after done.** Run `/clear` after moving a task to `project/3-done/` to reset context for the next task.
 - **Feature branches.** Main is protected — all changes go through PRs. Create a branch (`<task-number>-<slug>`), commit there, run `/review`, then open a PR for human review. Push after every commit.

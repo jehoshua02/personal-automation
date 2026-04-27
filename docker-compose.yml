@@ -4,6 +4,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
+      - ./services/auth:/app
       - ./secrets/google_oauth_client_secret.json:/secrets/client_secret.json:ro
       - auth-data:/data
     environment:
@@ -28,8 +29,11 @@ services:
     build: ./services/gmail-reader
     ports:
       - "8081:8081"
+    volumes:
+      - ./services/gmail-reader:/app
     environment:
       - AUTH_SERVICE_URL=http://auth:8080
+      - EXCLUDE_LABELS=processed,AutoFiltered
     depends_on:
       - auth
 
@@ -37,6 +41,8 @@ services:
     build: ./services/llm-processor
     ports:
       - "8082:8082"
+    volumes:
+      - ./services/llm-processor:/app
     environment:
       - OLLAMA_URL=http://ollama:11434
       - LLM_MODEL=llama3.1:8b
@@ -47,6 +53,8 @@ services:
     build: ./services/task-writer
     ports:
       - "8083:8083"
+    volumes:
+      - ./services/task-writer:/app
     environment:
       - AUTH_SERVICE_URL=http://auth:8080
     depends_on:
@@ -56,6 +64,8 @@ services:
     build: ./services/calendar-writer
     ports:
       - "8084:8084"
+    volumes:
+      - ./services/calendar-writer:/app
     environment:
       - AUTH_SERVICE_URL=http://auth:8080
       - CALENDAR_ID=${CALENDAR_ID:-primary}
@@ -67,27 +77,48 @@ services:
     ports:
       - "8085:8085"
     volumes:
+      - ./services/note-writer:/app
       - ./notes:/data/notes
+
+  email-filter:
+    build: ./services/email-filter
+    ports:
+      - "8087:8087"
+    environment:
+      - OLLAMA_URL=http://ollama:11434
+      - LLM_MODEL=llama3.1:8b
+      - WHITELIST_PATH=/config/whitelist.json
+    volumes:
+      - ./services/email-filter:/app
+      - ./services/email-filter/whitelist.json:/config/whitelist.json:ro
+    depends_on:
+      - ollama
 
   orchestrator:
     build: ./services/orchestrator
     ports:
       - "8086:8086"
+    volumes:
+      - ./services/orchestrator:/app
     environment:
       - GMAIL_READER_URL=http://gmail-reader:8081
       - LLM_PROCESSOR_URL=http://llm-processor:8082
       - TASK_WRITER_URL=http://task-writer:8083
       - CALENDAR_WRITER_URL=http://calendar-writer:8084
       - NOTE_WRITER_URL=http://note-writer:8085
+      - EMAIL_FILTER_URL=http://email-filter:8087
     depends_on:
       - gmail-reader
       - llm-processor
       - task-writer
       - calendar-writer
       - note-writer
+      - email-filter
 
   e2e-tests:
     build: ./tests/e2e
+    volumes:
+      - ./tests/e2e:/app
     profiles:
       - test
     depends_on:
