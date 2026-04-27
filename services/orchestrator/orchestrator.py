@@ -69,10 +69,10 @@ class Pipeline:
         except Exception:
             return {"important": True, "reason": "Filter unavailable", "method": "error"}
 
-    def mark_processed(self, message_id: str):
+    def mark_processed(self, message_id: str, label: str = "processed"):
         requests.post(
             f"{self.gmail_reader_url}/mark-processed",
-            json={"message_id": message_id},
+            json={"message_id": message_id, "label": label},
         )
 
     def run(self, max_results: int = 10) -> list[dict]:
@@ -81,7 +81,7 @@ class Pipeline:
         for msg in messages:
             filter_result = self.filter_message(msg)
             if not filter_result.get("important", True):
-                self.mark_processed(msg["id"])
+                self.mark_processed(msg["id"], label="AutoFiltered")
                 results.append({
                     "message_id": msg["id"],
                     "subject": msg.get("subject", ""),

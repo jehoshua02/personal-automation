@@ -86,7 +86,7 @@ class TestMarkProcessed:
         pipeline.mark_processed("msg1")
         mock_post.assert_called_once_with(
             "http://gmail-reader:8081/mark-processed",
-            json={"message_id": "msg1"},
+            json={"message_id": "msg1", "label": "processed"},
         )
 
 
@@ -156,6 +156,8 @@ class TestRunPipeline:
         assert results[0]["filter_reason"] == "Marketing"
         assert "extractions" not in results[0]
         assert mock_post.call_count == 3
+        mark_call = mock_post.call_args_list[2]
+        assert mark_call[1]["json"]["label"] == "AutoFiltered"
 
     @patch("orchestrator.requests.post")
     def test_handles_empty_inbox(self, mock_post, pipeline):

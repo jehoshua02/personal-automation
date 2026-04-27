@@ -20,7 +20,8 @@ def mark_processed():
     msg_id = request.json.get("message_id") if request.json else None
     if not msg_id:
         return jsonify({"error": "message_id required"}), 400
-    client.mark_processed(msg_id)
+    label = request.json.get("label", "processed")
+    client.mark_processed(msg_id, label=label)
     return jsonify({"status": "ok"})
 
 
