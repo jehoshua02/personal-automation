@@ -133,17 +133,8 @@ docker compose up -d llm-processor
 
 ## Notes storage
 
-Notes are stored in the `notes-data` Docker volume at `/data/notes` inside the note-writer container. To inspect:
+Notes are saved as markdown files in the `./notes/` directory on your host (bind-mounted to `/data/notes` inside the note-writer container).
 
 ```bash
-docker compose exec note-writer bash -c "ls /data/notes/"
-docker compose exec note-writer bash -c "cat /data/notes/<filename>"
-```
-
-To use a local directory instead, change the volume to a bind mount in `docker-compose.yml`:
-
-```yaml
-note-writer:
-  volumes:
-    - ./notes:/data/notes
+ls notes/
 ```

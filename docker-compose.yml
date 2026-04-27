@@ -66,7 +66,7 @@ services:
     ports:
       - "8085:8085"
     volumes:
-      - notes-data:/data/notes
+      - ./notes:/data/notes
 
   orchestrator:
     build: ./services/orchestrator
@@ -95,4 +95,3 @@ services:
 volumes:
   auth-data:
   ollama-data:
-  notes-data:
