@@ -9,6 +9,7 @@ Runs inside claude-container.
 - Task management follows the quarry plugin. Folder structure is in `project/README.md`.
 - Do not use Claude global memory. All project knowledge lives in this repo.
 - When the next step is obvious from the workflow rules, just do it. Don't ask.
+- **Refine to one-shot.** During refinement, front-load all codebase research (read code, check APIs, trace dependencies) so the task file has a complete plan that can be executed without further questions.
 - Push to remote after every commit.
 
 ## Implementation Rules
