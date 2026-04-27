@@ -5,7 +5,8 @@ from calendar_writer import CalendarWriter
 app = Flask(__name__)
 
 AUTH_SERVICE_URL = os.environ.get("AUTH_SERVICE_URL", "http://auth:8080")
-writer = CalendarWriter(AUTH_SERVICE_URL)
+CALENDAR_ID = os.environ.get("CALENDAR_ID", "primary")
+writer = CalendarWriter(AUTH_SERVICE_URL, calendar_id=CALENDAR_ID)
 
 
 @app.route("/write", methods=["POST"])

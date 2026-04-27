@@ -42,6 +42,37 @@ class TestWriteEvent:
 
     @patch("calendar_writer.requests.post")
     @patch("calendar_writer.requests.get")
+    def test_uses_calendar_id_env_var(self, mock_get, mock_post):
+        mock_get.return_value = MagicMock(
+            status_code=200,
+            json=lambda: {"access_token": "tok", "token_type": "Bearer"},
+        )
+        mock_post.return_value = MagicMock(status_code=200, json=lambda: {"id": "e1"})
+        w = CalendarWriter(auth_service_url="http://auth:8080", calendar_id="abc123")
+        w.write_event(
+            title="T", description="D", start="2026-04-28T15:00:00",
+            end="2026-04-28T16:00:00", location="", email_link="",
+        )
+        url = mock_post.call_args[0][0]
+        assert "/calendars/abc123/events" in url
+
+    @patch("calendar_writer.requests.post")
+    @patch("calendar_writer.requests.get")
+    def test_defaults_to_primary_calendar(self, mock_get, mock_post, writer):
+        mock_get.return_value = MagicMock(
+            status_code=200,
+            json=lambda: {"access_token": "tok", "token_type": "Bearer"},
+        )
+        mock_post.return_value = MagicMock(status_code=200, json=lambda: {"id": "e1"})
+        writer.write_event(
+            title="T", description="D", start="2026-04-28T15:00:00",
+            end="2026-04-28T16:00:00", location="", email_link="",
+        )
+        url = mock_post.call_args[0][0]
+        assert "/calendars/primary/events" in url
+
+    @patch("calendar_writer.requests.post")
+    @patch("calendar_writer.requests.get")
     def test_includes_email_link_in_description(self, mock_get, mock_post, writer):
         mock_get.return_value = MagicMock(
             status_code=200,

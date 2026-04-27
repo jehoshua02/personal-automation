@@ -5,8 +5,9 @@ CALENDAR_API = "https://www.googleapis.com/calendar/v3"
 
 
 class CalendarWriter:
-    def __init__(self, auth_service_url: str):
+    def __init__(self, auth_service_url: str, calendar_id: str = "primary"):
         self.auth_service_url = auth_service_url
+        self.calendar_id = calendar_id
 
     def get_token(self) -> str:
         resp = requests.get(f"{self.auth_service_url}/token")
@@ -32,7 +33,7 @@ class CalendarWriter:
         if location:
             body["location"] = location
         resp = requests.post(
-            f"{CALENDAR_API}/calendars/primary/events",
+            f"{CALENDAR_API}/calendars/{self.calendar_id}/events",
             headers=self._headers(),
             json=body,
         )

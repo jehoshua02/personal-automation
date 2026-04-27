@@ -58,6 +58,7 @@ services:
       - "8084:8084"
     environment:
       - AUTH_SERVICE_URL=http://auth:8080
+      - CALENDAR_ID=${CALENDAR_ID:-primary}
     depends_on:
       - auth
 
