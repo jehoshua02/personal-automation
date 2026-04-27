@@ -53,20 +53,7 @@ Services communicate over HTTP with stable JSON contracts. Each can be rewritten
 
 ### 2. Credentials
 
-Place the downloaded JSON in `secrets/`:
-
-```
-secrets/client_secret_<your-client-id>.apps.googleusercontent.com.json
-```
-
-Update `docker-compose.yml` to point to your file:
-
-```yaml
-services:
-  auth:
-    volumes:
-      - ./secrets/<your-file>.json:/secrets/client_secret.json:ro
-```
+Save the downloaded JSON as `secrets/google_oauth_client_secret.json`.
 
 ### 3. Start the cluster
 

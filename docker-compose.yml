@@ -4,7 +4,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./secrets/client_secret_250820501274-oaj382clma3s5jt90rqqq7gfcf0m7lml.apps.googleusercontent.com.json:/secrets/client_secret.json:ro
+      - ./secrets/google_oauth_client_secret.json:/secrets/client_secret.json:ro
       - auth-data:/data
     environment:
       - OAUTH_CONFIG_PATH=/secrets/client_secret.json
