@@ -92,12 +92,14 @@ services:
       - TASK_WRITER_URL=http://task-writer:8083
       - CALENDAR_WRITER_URL=http://calendar-writer:8084
       - NOTE_WRITER_URL=http://note-writer:8085
+      - EMAIL_FILTER_URL=http://email-filter:8087
     depends_on:
       - gmail-reader
       - llm-processor
       - task-writer
       - calendar-writer
       - note-writer
+      - email-filter
 
   e2e-tests:
     build: ./tests/e2e

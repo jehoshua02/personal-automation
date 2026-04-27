@@ -4,12 +4,14 @@ import requests
 
 class Pipeline:
     def __init__(self, gmail_reader_url: str, llm_processor_url: str,
-                 task_writer_url: str, calendar_writer_url: str, note_writer_url: str):
+                 task_writer_url: str, calendar_writer_url: str, note_writer_url: str,
+                 email_filter_url: str = ""):
         self.gmail_reader_url = gmail_reader_url
         self.llm_processor_url = llm_processor_url
         self.task_writer_url = task_writer_url
         self.calendar_writer_url = calendar_writer_url
         self.note_writer_url = note_writer_url
+        self.email_filter_url = email_filter_url
 
     def fetch_messages(self, max_results: int = 10) -> list[dict]:
         resp = requests.post(
@@ -52,6 +54,21 @@ class Pipeline:
             results["notes"].append(resp.json())
         return results
 
+    def filter_message(self, message: dict) -> dict:
+        try:
+            resp = requests.post(
+                f"{self.email_filter_url}/filter",
+                json={
+                    "subject": message.get("subject", ""),
+                    "body": message.get("body", ""),
+                    "from": message.get("from", ""),
+                    "date": message.get("date", ""),
+                },
+            )
+            return resp.json()
+        except Exception:
+            return {"important": True, "reason": "Filter unavailable", "method": "error"}
+
     def mark_processed(self, message_id: str):
         requests.post(
             f"{self.gmail_reader_url}/mark-processed",
@@ -62,6 +79,16 @@ class Pipeline:
         messages = self.fetch_messages(max_results=max_results)
         results = []
         for msg in messages:
+            filter_result = self.filter_message(msg)
+            if not filter_result.get("important", True):
+                self.mark_processed(msg["id"])
+                results.append({
+                    "message_id": msg["id"],
+                    "subject": msg.get("subject", ""),
+                    "filtered": True,
+                    "filter_reason": filter_result.get("reason", ""),
+                })
+                continue
             extractions = self.process_message(msg)
             raw_date = msg.get("date", "")
             try:
