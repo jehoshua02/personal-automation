@@ -69,6 +69,19 @@ services:
     volumes:
       - ./notes:/data/notes
 
+  email-filter:
+    build: ./services/email-filter
+    ports:
+      - "8087:8087"
+    environment:
+      - OLLAMA_URL=http://ollama:11434
+      - LLM_MODEL=llama3.1:8b
+      - WHITELIST_PATH=/config/whitelist.json
+    volumes:
+      - ./services/email-filter/whitelist.json:/config/whitelist.json:ro
+    depends_on:
+      - ollama
+
   orchestrator:
     build: ./services/orchestrator
     ports:
