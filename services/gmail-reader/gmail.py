@@ -5,8 +5,9 @@ GMAIL_API = "https://gmail.googleapis.com/gmail/v1/users/me"
 
 
 class GmailClient:
-    def __init__(self, auth_service_url: str):
+    def __init__(self, auth_service_url: str, exclude_labels: list[str] = None):
         self.auth_service_url = auth_service_url
+        self.exclude_labels = exclude_labels or ["processed"]
         self._label_id_cache = {}
 
     def get_token(self) -> str:
@@ -22,7 +23,7 @@ class GmailClient:
         resp = requests.get(
             f"{GMAIL_API}/messages",
             headers=self._headers(),
-            params={"q": "-label:processed -label:AutoFiltered", "maxResults": max_results},
+            params={"q": " ".join(f"-label:{l}" for l in self.exclude_labels), "maxResults": max_results},
         )
         if resp.status_code != 200:
             raise Exception(f"Gmail list failed: {resp.text}")

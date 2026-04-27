@@ -6,7 +6,7 @@ from gmail import GmailClient
 
 @pytest.fixture
 def gmail_client():
-    return GmailClient(auth_service_url="http://auth:8080")
+    return GmailClient(auth_service_url="http://auth:8080", exclude_labels=["processed", "AutoFiltered"])
 
 
 class TestGetToken:

@@ -11,6 +11,7 @@ pipeline = Pipeline(
     calendar_writer_url=os.environ.get("CALENDAR_WRITER_URL", "http://calendar-writer:8084"),
     note_writer_url=os.environ.get("NOTE_WRITER_URL", "http://note-writer:8085"),
     email_filter_url=os.environ.get("EMAIL_FILTER_URL", "http://email-filter:8087"),
+    filtered_label=os.environ.get("FILTERED_LABEL", "AutoFiltered"),
 )
 
 

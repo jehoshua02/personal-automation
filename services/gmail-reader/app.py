@@ -5,7 +5,8 @@ from gmail import GmailClient
 app = Flask(__name__)
 
 AUTH_SERVICE_URL = os.environ.get("AUTH_SERVICE_URL", "http://auth:8080")
-client = GmailClient(AUTH_SERVICE_URL)
+EXCLUDE_LABELS = os.environ.get("EXCLUDE_LABELS", "processed,AutoFiltered").split(",")
+client = GmailClient(AUTH_SERVICE_URL, exclude_labels=EXCLUDE_LABELS)
 
 
 @app.route("/fetch", methods=["POST"])

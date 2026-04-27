@@ -33,6 +33,7 @@ services:
       - ./services/gmail-reader:/app
     environment:
       - AUTH_SERVICE_URL=http://auth:8080
+      - EXCLUDE_LABELS=processed,AutoFiltered
     depends_on:
       - auth
 

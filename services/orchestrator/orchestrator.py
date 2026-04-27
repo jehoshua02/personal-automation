@@ -5,13 +5,15 @@ import requests
 class Pipeline:
     def __init__(self, gmail_reader_url: str, llm_processor_url: str,
                  task_writer_url: str, calendar_writer_url: str, note_writer_url: str,
-                 email_filter_url: str = ""):
+                 email_filter_url: str = "",
+                 filtered_label: str = "AutoFiltered"):
         self.gmail_reader_url = gmail_reader_url
         self.llm_processor_url = llm_processor_url
         self.task_writer_url = task_writer_url
         self.calendar_writer_url = calendar_writer_url
         self.note_writer_url = note_writer_url
         self.email_filter_url = email_filter_url
+        self.filtered_label = filtered_label
 
     def fetch_messages(self, max_results: int = 10) -> list[dict]:
         resp = requests.post(
@@ -81,7 +83,7 @@ class Pipeline:
         for msg in messages:
             filter_result = self.filter_message(msg)
             if not filter_result.get("important", True):
-                self.mark_processed(msg["id"], label="AutoFiltered")
+                self.mark_processed(msg["id"], label=self.filtered_label)
                 results.append({
                     "message_id": msg["id"],
                     "subject": msg.get("subject", ""),
