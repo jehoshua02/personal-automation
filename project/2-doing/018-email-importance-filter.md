@@ -59,30 +59,23 @@ New service: `email-filter` on port 8087. Follows single-responsibility pattern.
 
 ### Implementation plan
 
-#### Phase 1: email-filter service (TDD) — CODE WRITTEN, TESTS BLOCKED
+#### Phase 1: email-filter service (TDD) — DONE
 
-1. ~~Scaffold `services/email-filter/`~~ Done
-2. ~~Tests: whitelist logic, LLM classification, endpoint integration~~ Written
-3. ~~Whitelist: load from `/config/whitelist.json`, match on sender email/domain~~ Written
-4. ~~LLM classification: prompt Ollama, parse JSON response~~ Written
-5. ~~`POST /filter` endpoint~~ Written
-6. **Blocked:** Docker build fails over SSH (DPAPI credential helper). No Python on host. Run tests when local.
+- 15/15 tests passing. Whitelist + LLM classification + fail-open defaults.
+- Workaround: ran tests via `docker run` mounting code into existing llm-processor image (docker build blocked over SSH by DPAPI).
 
-#### Phase 2: orchestrator integration (TDD)
+#### Phase 2: orchestrator integration (TDD) — DONE
 
-1. Tests first: orchestrator skips extract for filtered emails
-2. Add filter call in orchestrator loop before extract
-3. Pass filter verdict to mark-processed (different label for filtered vs processed)
+- 11/11 tests passing. Filter called before extract, filtered emails skipped.
 
-#### Phase 3: gmail-reader label support
+#### Phase 3: gmail-reader label support — DONE
 
-1. Add "AutoFiltered" label handling to gmail-reader mark-processed endpoint
-2. Filtered emails get labeled but not extracted — user can review the label in Gmail
+- 9/9 tests passing. mark-processed accepts optional label param. Filtered emails get "AutoFiltered" label.
 
-#### Phase 4: e2e test
+#### Phase 4: e2e test — TODO
 
-1. Update e2e tests to verify filter → extract → write flow
-2. Verify filtered emails get correct label
+- Requires docker build (email-filter image doesn't exist yet) and valid OAuth tokens.
+- Cannot run over SSH due to DPAPI. Run when local.
 
 ### Whitelist bootstrap
 
