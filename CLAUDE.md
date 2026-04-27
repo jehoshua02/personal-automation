@@ -1,8 +1,57 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 ## What is personal-automation?
 
-Automated personal productivity pipelines — email processing, calendar management, task scheduling, and time budgeting. Uses Google APIs, local open-source LLMs via Ollama, and self-hosted scripting.
+Automated personal productivity pipelines — email processing, calendar management, task scheduling, and time budgeting. Uses Google APIs, local open-source LLMs via Ollama, and self-hosted scripting. Runs inside Docker containers.
 
-Runs inside claude-container.
+## Commands
+
+```bash
+# Start all services
+docker compose up -d
+
+# Run unit tests for a single service
+docker compose run --rm --no-deps <service> pytest tests/ -v
+
+# Services that need auth running (omit --no-deps):
+docker compose run --rm auth pytest tests/ -v
+docker compose run --rm gmail-reader pytest tests/ -v
+docker compose run --rm note-writer pytest tests/ -v
+
+# Run e2e tests (requires all services running + valid OAuth tokens)
+docker compose up -d
+docker compose run --rm e2e-tests
+
+# Build a single service
+docker compose build <service>
+
+# Run the pipeline
+curl -X POST http://localhost:8086/run -H "Content-Type: application/json" -d '{"max_results": 10}'
+
+# Pull/swap LLM model
+docker compose exec ollama ollama pull <model-name>
+```
+
+## Architecture
+
+Eight Docker containers, each a single-responsibility HTTP service on a shared Compose network. All Python (Flask). No service calls another directly except through HTTP JSON APIs.
+
+**Pipeline flow** (`POST /run` to orchestrator:8086):
+1. orchestrator → `gmail-reader/fetch` → list of email messages
+2. Per message: orchestrator → `llm-processor/extract` → `{tasks[], events[], notes[]}`
+3. Fan-out per extraction type:
+   - tasks → `task-writer/write` → Google Tasks API
+   - events → `calendar-writer/write` → Google Calendar API
+   - notes → `note-writer/write` → local markdown files
+4. orchestrator → `gmail-reader/mark-processed` → labels email in Gmail
+
+**Auth pattern**: auth service (8080) manages OAuth2 tokens. gmail-reader, task-writer, and calendar-writer call `GET auth:8080/token` to get an access token before hitting Google APIs. note-writer has no auth (writes to bind-mounted filesystem).
+
+**LLM**: llm-processor calls Ollama (11434) running llama3.1:8b locally on GPU. No email content leaves the machine.
+
+**Config**: Services read config from environment variables set in `docker-compose.yml`. `CALENDAR_ID` comes from `.env` (gitignored).
 
 ## Workflow
 
