@@ -68,7 +68,9 @@ class TestFetchMessages:
         gmail_client.fetch_messages()
         call_args = mock_get.call_args_list[1]
         params = call_args[1].get("params", {})
-        assert "-label:processed" in params.get("q", "")
+        q = params.get("q", "")
+        assert "-label:processed" in q
+        assert "-label:AutoFiltered" in q
 
     @patch("gmail.requests.get")
     def test_handles_empty_inbox(self, mock_get, gmail_client):

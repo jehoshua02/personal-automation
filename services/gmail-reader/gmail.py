@@ -22,7 +22,7 @@ class GmailClient:
         resp = requests.get(
             f"{GMAIL_API}/messages",
             headers=self._headers(),
-            params={"q": "-label:processed", "maxResults": max_results},
+            params={"q": "-label:processed -label:AutoFiltered", "maxResults": max_results},
         )
         if resp.status_code != 200:
             raise Exception(f"Gmail list failed: {resp.text}")
