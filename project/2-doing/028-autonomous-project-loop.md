@@ -194,6 +194,8 @@ Custom skill invoked via `/loop quarry-loop`. Runs inline (not `context: fork`) 
 - Does `/loop /quarry-loop` correctly re-fire the skill each iteration?
 - Do worktree-isolated subagents have access to `.claude/` settings?
 
+## Plan Approved
+
 ## Verification
 
 - [x] Researched hooks, /loop, /compact, subagents, /schedule
