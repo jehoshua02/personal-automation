@@ -60,7 +60,7 @@ Eight Docker containers, each a single-responsibility HTTP service on a shared C
 - When the next step is obvious from the workflow rules, just do it. Don't ask.
 - **One-shot at pickup.** When moving a task from todo → doing, front-load all codebase research (read code, check APIs, trace dependencies) so the task file has a complete plan that can be executed without further questions. Inbox → todo refinement only needs enough context to score accurately.
 - **Clear after done.** Run `/clear` after moving a task to `project/3-done/` to reset context for the next task.
-- Push to remote after every commit.
+- **Feature branches.** Main is protected — all changes go through PRs. Create a branch (`<task-number>-<slug>`), commit there, run `/review`, then open a PR for human review. Push after every commit.
 
 ## Implementation Rules
 
