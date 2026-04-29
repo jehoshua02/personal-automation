@@ -26,7 +26,7 @@ class Task(Base):
         }
 
 
-def init_db(database_url: str, retries=5, delay=2):
+def init_db(database_url: str, retries=15, delay=2):
     import time
     engine = create_engine(database_url)
     for attempt in range(retries):
