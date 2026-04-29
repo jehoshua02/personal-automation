@@ -139,7 +139,7 @@ services:
   task-store:
     image: postgres:17-alpine
     volumes:
-      - ./data/task-store:/var/lib/postgresql/data
+      - ./volumes/task-store:/var/lib/postgresql/data
     environment:
       - POSTGRES_DB=tasks
       - POSTGRES_USER=tasks
@@ -155,6 +155,15 @@ services:
       - DATABASE_URL=postgresql://tasks:tasks@task-store:5432/tasks
     depends_on:
       - task-store
+
+  task-frontend:
+    build: ./services/task-frontend
+    ports:
+      - "8091:8091"
+    volumes:
+      - ./services/task-frontend:/app
+    environment:
+      - TASK_SERVICE_URL=http://localhost:8090
 
   e2e-tests:
     build: ./tests/e2e
