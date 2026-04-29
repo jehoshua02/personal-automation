@@ -17,6 +17,8 @@ Build a task-service (HTTP CRUD API) and task-store (Postgres with bind-mounted 
 - Captured: 2026-04-28
 - Refined: 2026-04-28
 - Started: 2026-04-29
+- Verified: 2026-04-29
+- Done: 2026-04-29
 
 ## Details
 
@@ -49,3 +51,19 @@ Feature branch: `001-todo-database`
 - curl: create, list, get, update, delete
 
 ### 4. Verify & complete
+
+## Verification
+
+Unit tests: 14 passing (SQLite in-memory).
+
+Integration (Postgres):
+```
+POST /tasks → 201, task created with timestamps
+GET /tasks → 200, list with 1 task
+GET /tasks/1 → 200, single task
+PUT /tasks/1 (completed_at) → 200, completed_at set
+DELETE /tasks/1 → 204
+GET /tasks/1 → 404 (confirmed deleted)
+```
+
+DB retry logic handles Postgres startup delay.

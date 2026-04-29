@@ -136,6 +136,26 @@ services:
     environment:
       - CHAT_BACKEND_URL=http://localhost:8088
 
+  task-store:
+    image: postgres:17-alpine
+    volumes:
+      - ./data/task-store:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=tasks
+      - POSTGRES_USER=tasks
+      - POSTGRES_PASSWORD=tasks
+
+  task-service:
+    build: ./services/task-service
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./services/task-service:/app
+    environment:
+      - DATABASE_URL=postgresql://tasks:tasks@task-store:5432/tasks
+    depends_on:
+      - task-store
+
   e2e-tests:
     build: ./tests/e2e
     volumes:
