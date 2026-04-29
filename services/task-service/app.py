@@ -1,11 +1,13 @@
 import os
 from datetime import datetime, timezone
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from db import Task, init_db
 
 
 def create_app(database_url=None):
     app = Flask(__name__)
+    CORS(app)
     url = database_url or os.environ.get("DATABASE_URL", "sqlite:///tasks.db")
     Session = init_db(url)
 

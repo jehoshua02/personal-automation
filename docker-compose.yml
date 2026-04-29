@@ -156,6 +156,15 @@ services:
     depends_on:
       - task-store
 
+  task-frontend:
+    build: ./services/task-frontend
+    ports:
+      - "8091:8091"
+    volumes:
+      - ./services/task-frontend:/app
+    environment:
+      - TASK_SERVICE_URL=http://localhost:8090
+
   e2e-tests:
     build: ./tests/e2e
     volumes:
