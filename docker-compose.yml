@@ -139,7 +139,7 @@ services:
   task-store:
     image: postgres:17-alpine
     volumes:
-      - ./volumes/task-store/data:/var/lib/postgresql/data
+      - ./volumes/task-store:/var/lib/postgresql/data
     environment:
       - POSTGRES_DB=tasks
       - POSTGRES_USER=tasks
