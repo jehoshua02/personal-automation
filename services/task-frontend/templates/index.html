@@ -23,47 +23,74 @@
         .btn-undo { color: #ff6; border-color: #ff6; }
         #task-list { border: 1px solid #333; min-height: 100px; background: #111; }
         .empty { padding: 20px; color: #666; text-align: center; }
-        #filters { margin-bottom: 15px; display: flex; gap: 6px; flex-wrap: wrap; }
+        .bar { margin-bottom: 10px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+        .bar-label { color: #888; font-size: 0.85em; margin-right: 4px; }
         .filter-btn { padding: 4px 10px; font-size: 0.9em; }
         .filter-btn.active { background: #446; border-color: #88f; color: #aaf; }
-        .hint { color: #666; font-size: 0.85em; margin-bottom: 15px; }
+        .list-btn { padding: 6px 12px; font-size: 1em; }
+        .list-btn.active { background: #464; border-color: #8f8; color: #afa; }
     </style>
 </head>
 <body>
     <h1>Tasks</h1>
+    <div class="bar" id="lists"><span class="bar-label">Lists:</span></div>
     <form id="add-form">
         <input type="text" id="title" placeholder="New task..." autocomplete="off" />
         <input type="text" id="labels" placeholder="Labels (comma sep)" style="max-width: 200px;" />
         <button type="submit">Add</button>
     </form>
-    <div id="filters"></div>
+    <div class="bar" id="filters"><span class="bar-label">Labels:</span></div>
     <div id="task-list"></div>
     <script>
         const API = "{{ task_service_url }}";
         const taskList = document.getElementById("task-list");
         const filtersDiv = document.getElementById("filters");
+        const listsDiv = document.getElementById("lists");
         const form = document.getElementById("add-form");
         const titleInput = document.getElementById("title");
         const labelsInput = document.getElementById("labels");
-        let activeFilter = null;
+        let activeLabel = null;
+        let activeList = "Inbox";
+        let allLists = [];
+
+        async function loadLists() {
+            const resp = await fetch(API + "/lists");
+            const lists = await resp.json();
+            allLists = lists;
+            listsDiv.innerHTML = '<span class="bar-label">Lists:</span>' +
+                lists.map(l =>
+                    '<button class="list-btn ' + (activeList === l.name ? 'active' : '') + '" onclick="setList(\'' + l.name.replace(/'/g, "\\'") + '\')">' + l.name.replace(/</g, "&lt;") + '</button>'
+                ).join("") +
+                '<button class="list-btn" onclick="setList(null)">All</button>';
+        }
 
         async function loadLabels() {
             const resp = await fetch(API + "/labels");
             const labels = await resp.json();
-            filtersDiv.innerHTML = '<button class="filter-btn ' + (activeFilter === null ? 'active' : '') + '" onclick="setFilter(null)">All</button>' +
+            filtersDiv.innerHTML = '<span class="bar-label">Labels:</span>' +
+                '<button class="filter-btn ' + (activeLabel === null ? 'active' : '') + '" onclick="setLabel(null)">All</button>' +
                 labels.map(l =>
-                    '<button class="filter-btn ' + (activeFilter === l.name ? 'active' : '') + '" onclick="setFilter(\'' + l.name.replace(/'/g, "\\'") + '\')">' + l.name.replace(/</g, "&lt;") + '</button>'
+                    '<button class="filter-btn ' + (activeLabel === l.name ? 'active' : '') + '" onclick="setLabel(\'' + l.name.replace(/'/g, "\\'") + '\')">' + l.name.replace(/</g, "&lt;") + '</button>'
                 ).join("");
         }
 
-        function setFilter(label) {
-            activeFilter = label;
+        function setLabel(label) {
+            activeLabel = label;
             loadLabels();
             loadTasks();
         }
 
+        function setList(list) {
+            activeList = list;
+            loadLists();
+            loadTasks();
+        }
+
         async function loadTasks() {
-            const url = activeFilter ? API + "/tasks?label=" + encodeURIComponent(activeFilter) : API + "/tasks";
+            const params = new URLSearchParams();
+            if (activeLabel) params.set("label", activeLabel);
+            if (activeList) params.set("list", activeList);
+            const url = API + "/tasks" + (params.toString() ? "?" + params : "");
             const resp = await fetch(url);
             const tasks = await resp.json();
             if (tasks.length === 0) {
@@ -73,10 +100,15 @@
             taskList.innerHTML = tasks.map(t => {
                 const completed = t.completed_at !== null;
                 const labelsHtml = t.labels.map(l => '<span class="label-tag">' + l.replace(/</g, "&lt;") + '</span>').join("");
+                const moveOptions = allLists.filter(l => l.name !== t.list).map(l =>
+                    '<option value="' + l.name.replace(/"/g, "&quot;") + '">' + l.name.replace(/</g, "&lt;") + '</option>'
+                ).join("");
+                const moveHtml = moveOptions ? '<select onchange="moveTask(' + t.id + ', this.value)" style="font-family:monospace;font-size:0.85em;background:#222;color:#e0e0e0;border:1px solid #555;padding:2px;"><option value="">Move...</option>' + moveOptions + '</select>' : '';
                 return '<div class="task ' + (completed ? 'completed' : '') + '" data-id="' + t.id + '">' +
                     '<span class="task-title">' + t.title.replace(/</g, "&lt;") + '</span>' +
                     (labelsHtml ? '<span class="task-labels">' + labelsHtml + '</span>' : '') +
                     '<span class="task-actions">' +
+                        moveHtml +
                         (completed
                             ? '<button class="btn-undo" onclick="toggleComplete(' + t.id + ', true)">Undo</button>'
                             : '<button class="btn-complete" onclick="toggleComplete(' + t.id + ', false)">Done</button>'
@@ -93,13 +125,16 @@
             if (!title) return;
             const labelStr = labelsInput.value.trim();
             const labels = labelStr ? labelStr.split(",").map(l => l.trim()).filter(l => l) : [];
+            const body = {title, labels};
+            if (activeList) body.list = activeList;
             await fetch(API + "/tasks", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({title, labels}),
+                body: JSON.stringify(body),
             });
             titleInput.value = "";
             labelsInput.value = "";
+            loadLists();
             loadLabels();
             loadTasks();
         });
@@ -113,11 +148,22 @@
             loadTasks();
         }
 
+        async function moveTask(id, list) {
+            if (!list) return;
+            await fetch(API + "/tasks/" + id, {
+                method: "PUT",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({list}),
+            });
+            loadTasks();
+        }
+
         async function deleteTask(id) {
             await fetch(API + "/tasks/" + id, {method: "DELETE"});
             loadTasks();
         }
 
+        loadLists();
         loadLabels();
         loadTasks();
     </script>

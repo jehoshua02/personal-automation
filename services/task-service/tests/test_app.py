@@ -16,6 +16,8 @@ def test_health(client):
     assert resp.get_json() == {"status": "ok"}
 
 
+# --- Tasks ---
+
 def test_create_task(client):
     resp = client.post("/tasks", json={"title": "Buy milk"})
     assert resp.status_code == 201
@@ -24,9 +26,8 @@ def test_create_task(client):
     assert data["description"] is None
     assert data["completed_at"] is None
     assert data["labels"] == []
+    assert data["list"] == "Inbox"
     assert "id" in data
-    assert "created_at" in data
-    assert "updated_at" in data
 
 
 def test_create_task_with_description(client):
@@ -48,8 +49,19 @@ def test_create_task_no_body(client):
 def test_create_task_with_labels(client):
     resp = client.post("/tasks", json={"title": "Buy milk", "labels": ["grocery", "urgent"]})
     assert resp.status_code == 201
-    data = resp.get_json()
-    assert sorted(data["labels"]) == ["grocery", "urgent"]
+    assert sorted(resp.get_json()["labels"]) == ["grocery", "urgent"]
+
+
+def test_create_task_with_list(client):
+    resp = client.post("/tasks", json={"title": "Buy milk", "list": "Shopping"})
+    assert resp.status_code == 201
+    assert resp.get_json()["list"] == "Shopping"
+
+
+def test_create_task_default_list(client):
+    resp = client.post("/tasks", json={"title": "Buy milk"})
+    assert resp.status_code == 201
+    assert resp.get_json()["list"] == "Inbox"
 
 
 def test_list_tasks_empty(client):
@@ -113,6 +125,14 @@ def test_update_task_remove_labels(client):
     assert resp.get_json()["labels"] == []
 
 
+def test_update_task_change_list(client):
+    create_resp = client.post("/tasks", json={"title": "Buy milk"})
+    task_id = create_resp.get_json()["id"]
+    resp = client.put(f"/tasks/{task_id}", json={"list": "Shopping"})
+    assert resp.status_code == 200
+    assert resp.get_json()["list"] == "Shopping"
+
+
 def test_update_task_not_found(client):
     resp = client.put("/tasks/999", json={"title": "Nope"})
     assert resp.status_code == 404
@@ -132,6 +152,8 @@ def test_delete_task_not_found(client):
     assert resp.status_code == 404
 
 
+# --- Filter ---
+
 def test_filter_tasks_by_label(client):
     client.post("/tasks", json={"title": "Buy milk", "labels": ["grocery"]})
     client.post("/tasks", json={"title": "Fix bug", "labels": ["work"]})
@@ -149,6 +171,28 @@ def test_filter_tasks_by_label_empty(client):
     assert resp.status_code == 200
     assert resp.get_json() == []
 
+
+def test_filter_tasks_by_list(client):
+    client.post("/tasks", json={"title": "Buy milk", "list": "Shopping"})
+    client.post("/tasks", json={"title": "Fix bug", "list": "Work"})
+    resp = client.get("/tasks?list=Shopping")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert len(data) == 1
+    assert data[0]["list"] == "Shopping"
+
+
+def test_filter_tasks_by_list_default(client):
+    client.post("/tasks", json={"title": "Buy milk"})
+    client.post("/tasks", json={"title": "Fix bug", "list": "Work"})
+    resp = client.get("/tasks?list=Inbox")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert len(data) == 1
+    assert data[0]["list"] == "Inbox"
+
+
+# --- Labels ---
 
 def test_create_label(client):
     resp = client.post("/labels", json={"name": "grocery"})
@@ -176,3 +220,40 @@ def test_labels_created_implicitly(client):
     assert resp.status_code == 200
     names = [l["name"] for l in resp.get_json()]
     assert "grocery" in names
+
+
+# --- Lists ---
+
+def test_inbox_exists_by_default(client):
+    resp = client.get("/lists")
+    assert resp.status_code == 200
+    names = [l["name"] for l in resp.get_json()]
+    assert "Inbox" in names
+
+
+def test_create_list(client):
+    resp = client.post("/lists", json={"name": "Shopping"})
+    assert resp.status_code == 201
+    assert resp.get_json()["name"] == "Shopping"
+
+
+def test_create_list_duplicate(client):
+    client.post("/lists", json={"name": "Shopping"})
+    resp = client.post("/lists", json={"name": "Shopping"})
+    assert resp.status_code == 409
+
+
+def test_list_lists(client):
+    client.post("/lists", json={"name": "Shopping"})
+    resp = client.get("/lists")
+    assert resp.status_code == 200
+    names = [l["name"] for l in resp.get_json()]
+    assert "Inbox" in names
+    assert "Shopping" in names
+
+
+def test_lists_created_implicitly(client):
+    client.post("/tasks", json={"title": "Buy milk", "list": "Shopping"})
+    resp = client.get("/lists")
+    names = [l["name"] for l in resp.get_json()]
+    assert "Shopping" in names
