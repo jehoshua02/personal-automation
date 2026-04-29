@@ -17,6 +17,7 @@ Build a frontend chat interface for interacting with local Ollama models. Two ne
 - Captured: 2026-04-28
 - Refined: 2026-04-28
 - Started: 2026-04-28
+- Verified: 2026-04-28
 
 ## Details
 
@@ -48,3 +49,19 @@ Feature branch: `001-ollama-chat-ui`
 - curl: send prompt, get response
 
 ### 4. Verify & complete
+
+## Verification
+
+```
+$ curl -s http://localhost:8088/health
+{"status":"ok"}
+
+$ curl -s http://localhost:8089/health
+{"status":"ok"}
+
+$ curl -s -X POST http://localhost:8088/chat -H "Content-Type: application/json" -d '{"message": "Say hello in exactly 5 words."}'
+{"response":"Hello, how are you doing today?"}
+```
+
+Unit tests: 7 backend, 2 frontend — all pass.
+Frontend UI available at http://localhost:8089.
