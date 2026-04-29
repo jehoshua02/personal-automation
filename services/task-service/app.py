@@ -2,7 +2,7 @@ import os
 from datetime import datetime, timezone
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from db import Task, Label, init_db
+from db import Task, Label, List, init_db
 
 
 def _get_or_create_labels(session, label_names):
@@ -14,6 +14,17 @@ def _get_or_create_labels(session, label_names):
             session.add(label)
         labels.append(label)
     return labels
+
+
+def _resolve_list(session, list_name):
+    if not list_name:
+        list_name = "Inbox"
+    lst = session.query(List).filter_by(name=list_name).first()
+    if not lst:
+        lst = List(name=list_name)
+        session.add(lst)
+        session.flush()
+    return lst
 
 
 def create_app(database_url=None):
@@ -32,7 +43,8 @@ def create_app(database_url=None):
         if not data or "title" not in data:
             return jsonify({"error": "title required"}), 400
         session = Session()
-        task = Task(title=data["title"], description=data.get("description"))
+        lst = _resolve_list(session, data.get("list"))
+        task = Task(title=data["title"], description=data.get("description"), list_id=lst.id)
         if "labels" in data:
             task.labels = _get_or_create_labels(session, data["labels"])
         session.add(task)
@@ -44,11 +56,14 @@ def create_app(database_url=None):
     @app.route("/tasks", methods=["GET"])
     def list_tasks():
         session = Session()
+        query = session.query(Task)
         label_filter = request.args.get("label")
+        list_filter = request.args.get("list")
         if label_filter:
-            tasks = session.query(Task).filter(Task.labels.any(Label.name == label_filter)).all()
-        else:
-            tasks = session.query(Task).all()
+            query = query.filter(Task.labels.any(Label.name == label_filter))
+        if list_filter:
+            query = query.join(List).filter(List.name == list_filter)
+        tasks = query.all()
         result = [t.to_dict() for t in tasks]
         session.close()
         return jsonify(result)
@@ -83,6 +98,9 @@ def create_app(database_url=None):
                 task.completed_at = None
         if "labels" in data:
             task.labels = _get_or_create_labels(session, data["labels"])
+        if "list" in data:
+            lst = _resolve_list(session, data["list"])
+            task.list_id = lst.id
         task.updated_at = datetime.now(timezone.utc)
         session.commit()
         result = task.to_dict()
@@ -122,6 +140,30 @@ def create_app(database_url=None):
         session = Session()
         labels = session.query(Label).all()
         result = [l.to_dict() for l in labels]
+        session.close()
+        return jsonify(result)
+
+    @app.route("/lists", methods=["POST"])
+    def create_list():
+        data = request.json
+        if not data or "name" not in data:
+            return jsonify({"error": "name required"}), 400
+        session = Session()
+        if session.query(List).filter_by(name=data["name"]).first():
+            session.close()
+            return jsonify({"error": "list already exists"}), 409
+        lst = List(name=data["name"])
+        session.add(lst)
+        session.commit()
+        result = lst.to_dict()
+        session.close()
+        return jsonify(result), 201
+
+    @app.route("/lists", methods=["GET"])
+    def list_lists():
+        session = Session()
+        lists = session.query(List).all()
+        result = [l.to_dict() for l in lists]
         session.close()
         return jsonify(result)
 

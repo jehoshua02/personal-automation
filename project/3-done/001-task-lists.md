@@ -17,6 +17,8 @@ Add lists to tasks. A task belongs to exactly one list (mutually exclusive). Def
 - Captured: 2026-04-29
 - Refined: 2026-04-29
 - Started: 2026-04-29
+- Verified: 2026-04-29
+- Done: 2026-04-29
 
 ## Details
 
@@ -43,3 +45,17 @@ Feature branch: `task-lists`
 - Default to Inbox
 
 ### 3. Integration test & verify
+
+## Verification
+
+Unit tests: 33 passing.
+
+Integration (Postgres):
+```
+GET /lists → [Inbox] (default created)
+POST /tasks with list=Shopping → created in Shopping
+GET /tasks?list=Shopping → filtered
+GET /lists → [Inbox, Shopping]
+```
+
+Frontend: list tabs, move dropdown, label filters — all confirmed by user.
