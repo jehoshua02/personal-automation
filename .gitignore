@@ -2,3 +2,5 @@ secrets/
 .claude/settings.local.json
 .env
 notes/
+__pycache__
+volumes/
