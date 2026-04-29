@@ -17,6 +17,8 @@ Add labels to tasks in task-service and filter the task list by label. Enables c
 - Captured: 2026-04-29
 - Refined: 2026-04-29
 - Started: 2026-04-29
+- Verified: 2026-04-29
+- Done: 2026-04-29
 
 ## Details
 
@@ -45,3 +47,16 @@ Feature branch: `024-task-labels`
 - Display labels on each task
 
 ### 3. Integration test & verify
+
+## Verification
+
+Unit tests: 23 passing.
+
+Integration (Postgres):
+```
+POST /tasks with labels → 201, labels attached
+GET /tasks?label=grocery → filtered results
+GET /labels → all labels listed
+```
+
+Frontend tested in browser by user — confirmed working.
