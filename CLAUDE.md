@@ -36,7 +36,9 @@ docker compose exec ollama ollama pull <model-name>
 
 ## Architecture
 
-Nine Docker containers, each a single-responsibility HTTP service on a shared Compose network. All Python (Flask). No service calls another directly except through HTTP JSON APIs.
+Docker containers, each a single-responsibility HTTP service. All Python (Flask). No service calls another directly except through HTTP JSON APIs.
+
+**Network model**: Frontend services live on a public network and only talk to their dedicated backend service. Backend/internal services live on a private network. Frontend → backend → private service. Frontends never reach private services directly.
 
 **Pipeline flow** (`POST /run` to orchestrator:8086):
 1. orchestrator → `gmail-reader/fetch` → list of email messages
