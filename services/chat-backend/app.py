@@ -14,10 +14,10 @@ chat_client = ChatClient(OLLAMA_URL, LLM_MODEL)
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.json
-    if not data or "message" not in data:
-        return jsonify({"error": "message required"}), 400
+    if not data or "messages" not in data:
+        return jsonify({"error": "messages required"}), 400
     try:
-        response = chat_client.send(data["message"])
+        response = chat_client.send(data["messages"])
         return jsonify({"response": response})
     except Exception as e:
         return jsonify({"error": str(e)}), 502

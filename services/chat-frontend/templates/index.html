@@ -29,17 +29,18 @@
     </form>
     <script>
         const BACKEND = "{{ chat_backend_url }}";
-        const messages = document.getElementById("messages");
+        const messagesDiv = document.getElementById("messages");
         const form = document.getElementById("chat-form");
         const input = document.getElementById("prompt");
         const btn = document.getElementById("send-btn");
+        const history = [];
 
         function addMessage(role, text) {
             const div = document.createElement("div");
             div.className = "msg " + role;
             div.innerHTML = '<span class="label">' + role + ':</span> ' + text.replace(/</g, "&lt;");
-            messages.appendChild(div);
-            messages.scrollTop = messages.scrollHeight;
+            messagesDiv.appendChild(div);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
         form.addEventListener("submit", async (e) => {
@@ -47,18 +48,20 @@
             const msg = input.value.trim();
             if (!msg) return;
             addMessage("user", msg);
+            history.push({role: "user", content: msg});
             input.value = "";
             btn.disabled = true;
             try {
                 const resp = await fetch(BACKEND + "/chat", {
                     method: "POST",
                     headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({message: msg}),
+                    body: JSON.stringify({messages: history}),
                 });
                 const data = await resp.json();
                 if (data.error) {
                     addMessage("assistant", "Error: " + data.error);
                 } else {
+                    history.push({role: "assistant", content: data.response});
                     addMessage("assistant", data.response);
                 }
             } catch (err) {
