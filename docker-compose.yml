@@ -115,6 +115,27 @@ services:
       - note-writer
       - email-filter
 
+  chat-backend:
+    build: ./services/chat-backend
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./services/chat-backend:/app
+    environment:
+      - OLLAMA_URL=http://ollama:11434
+      - LLM_MODEL=llama3.1:8b
+    depends_on:
+      - ollama
+
+  chat-frontend:
+    build: ./services/chat-frontend
+    ports:
+      - "8089:8089"
+    volumes:
+      - ./services/chat-frontend:/app
+    environment:
+      - CHAT_BACKEND_URL=http://localhost:8088
+
   e2e-tests:
     build: ./tests/e2e
     volumes:

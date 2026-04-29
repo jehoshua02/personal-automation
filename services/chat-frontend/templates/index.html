@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ollama Chat</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: monospace; max-width: 800px; margin: 0 auto; padding: 20px; background: #1a1a1a; color: #e0e0e0; }
+        h1 { margin-bottom: 20px; font-size: 1.2em; }
+        #messages { border: 1px solid #333; padding: 15px; height: 500px; overflow-y: auto; margin-bottom: 10px; background: #111; }
+        .msg { margin-bottom: 12px; white-space: pre-wrap; word-wrap: break-word; }
+        .msg.user { color: #6cf; }
+        .msg.assistant { color: #ccc; }
+        .msg .label { font-weight: bold; }
+        form { display: flex; gap: 10px; }
+        input[type="text"] { flex: 1; padding: 10px; font-family: monospace; font-size: 1em; background: #222; color: #e0e0e0; border: 1px solid #333; }
+        button { padding: 10px 20px; font-family: monospace; font-size: 1em; background: #333; color: #e0e0e0; border: 1px solid #555; cursor: pointer; }
+        button:hover { background: #444; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <h1>Ollama Chat</h1>
+    <div id="messages"></div>
+    <form id="chat-form">
+        <input type="text" id="prompt" placeholder="Type a message..." autocomplete="off" />
+        <button type="submit" id="send-btn">Send</button>
+    </form>
+    <script>
+        const BACKEND = "{{ chat_backend_url }}";
+        const messagesDiv = document.getElementById("messages");
+        const form = document.getElementById("chat-form");
+        const input = document.getElementById("prompt");
+        const btn = document.getElementById("send-btn");
+        const history = [];
+
+        function addMessage(role, text) {
+            const div = document.createElement("div");
+            div.className = "msg " + role;
+            div.innerHTML = '<span class="label">' + role + ':</span> ' + text.replace(/</g, "&lt;");
+            messagesDiv.appendChild(div);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const msg = input.value.trim();
+            if (!msg) return;
+            addMessage("user", msg);
+            history.push({role: "user", content: msg});
+            input.value = "";
+            btn.disabled = true;
+            try {
+                const resp = await fetch(BACKEND + "/chat", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({messages: history}),
+                });
+                const data = await resp.json();
+                if (data.error) {
+                    addMessage("assistant", "Error: " + data.error);
+                } else {
+                    history.push({role: "assistant", content: data.response});
+                    addMessage("assistant", data.response);
+                }
+            } catch (err) {
+                addMessage("assistant", "Error: " + err.message);
+            }
+            btn.disabled = false;
+            input.focus();
+        });
+    </script>
+</body>
+</html>
